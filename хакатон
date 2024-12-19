@@ -1,0 +1,176 @@
+#include <iostream>
+#include <istream>
+#include <fstream>
+#include <vector>
+#include <iomanip>
+#include <string>
+#include <limits>
+#include <windows.h>
+
+#ifdef max
+#undef max
+#endif
+
+using namespace std;
+
+void menuEspenses() {
+    cout << "\nМеню:" << endl;
+    cout << "1. Добавить расход" << endl;
+    cout << "2. Просмотреть историю расходов" << endl;
+    cout << "3. Подсчитать общую сумму расходов" << endl;
+    cout << "4. Поиск по категории" << endl;
+    cout << "5. Сохранить данные в файл" << endl;
+    cout << "6. Загрузить данные из файла" << endl;
+    cout << "0. Выход" << endl;
+}
+
+struct Expenses {
+    int sumExpenses;
+    string category;
+    string description;
+};
+
+void expense(vector<Expenses>& expenses) {
+    cout << "Введите данные (для окончания ввода введите '/')." << endl;
+    string input;
+
+    while (true) {
+        Expenses expense;
+        cout << "Сумма расходов: ";
+        while (!(cin >> expense.sumExpenses)) {
+            cout << "Некорректный ввод суммы расходов." << endl;
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            continue;
+        }
+        cin.ignore();
+        cout << "Категория: ";
+        getline(cin, expense.category);
+        cout << "Описание: ";
+        getline(cin, expense.description);
+
+        expenses.push_back(expense);
+
+        cout << "Введите '/' для завершения, или Enter для продолжения: ";
+        getline(cin, input);
+        if (input == "/") {
+            break;
+        }
+    }
+}
+
+void showExpenses(const vector<Expenses>& expenses) {
+    cout << endl;
+    cout << "Список расходов.\n";
+    for (const auto& list : expenses)
+        cout << "Сумма: " << list.sumExpenses << ", Категория: " << list.category << ", Описание: " << list.description << endl;
+}
+
+void summaExpenses(const vector<Expenses>& expenses, int& countExpenses) {
+    for (const auto& list : expenses)
+        countExpenses += list.sumExpenses;
+}
+
+void categoryExpenses(const vector<Expenses>& expenses, const string& category) {;
+    cout << "Расходы по категории " << category << endl;
+    bool found = false;
+    for (const auto& list : expenses) {
+        if (list.category == category) {
+            cout << "Сумма: " << list.sumExpenses << ", Описание: " << list.description << endl;
+            found = true;
+        }
+    }
+    if (!found) {
+        cout << "Список расходов по данной категории пуст." << endl;
+    }
+}
+
+void saveToFile(const vector<Expenses>& expenses) {
+    ofstream outFile("expenses.txt");
+    if (!outFile) {
+        cerr << "Ошибка при открытии файла для записи." << endl;
+        return;
+    }
+    for (const auto& exp : expenses) {
+        outFile << exp.sumExpenses << "," << exp.category << "," << exp.description << endl;
+    }
+    outFile.close();
+    cout << "Данные сохранены в файл expenses.txt" << endl;
+}
+
+void loadFromFile(vector<Expenses>& expenses) {
+    ifstream inFile("expenses.txt");
+    if (!inFile) {
+        cerr << "Ошибка при открытии файла для чтения." << endl;
+        return;
+    }
+    Expenses exp;
+    string line;
+    while (getline(inFile, line)) {
+        size_t pos1 = line.find(',');
+        size_t pos2 = line.find(',', pos1 + 1);
+        if (pos1 != string::npos && pos2 != string::npos) {
+            exp.sumExpenses = stoi(line.substr(0, pos1));
+            exp.category = line.substr(pos1 + 1, pos2 - pos1 - 1);
+            exp.description = line.substr(pos2 + 1);
+            expenses.push_back(exp);
+        }
+    }
+    inFile.close();
+    cout << "Данные загружены из файла expenses.txt" << endl;
+}
+
+int main()
+{
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    setlocale(LC_ALL, "ru");
+    int choice;
+    vector<Expenses> expenses;
+    do {
+        menuEspenses();
+        cout << endl;
+        cout << "Выберите действие: ";
+        cin >> choice;
+        cin.ignore();
+        switch (choice) {
+            case 1: {
+                expense(expenses);
+                break;
+            }
+            case 2: {
+                showExpenses(expenses);
+                break;
+            }
+            case 3: {
+                int countExpenses = 0;
+                summaExpenses(expenses, countExpenses);
+                cout << "Общая сумма расходов: " << countExpenses << endl;
+                break;
+            }
+            case 4: {
+                string category;
+                cout << "Введите категорию для поиска: " << endl;;
+                getline(cin, category);
+                categoryExpenses(expenses, category);
+                break;
+            }
+            case 5: {
+                saveToFile(expenses);
+                break;
+            }
+            case 6: {
+                loadFromFile(expenses);
+                break;
+            }
+            case 0: {
+                cout << "Выход из программы." << endl;
+                break;
+            default:
+                cout << "Ошибка! Попробуйте еще раз." << endl;
+                break;
+            }
+        }
+    } while (choice != 0);
+    return 0;
+}
